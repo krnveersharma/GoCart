@@ -3,22 +3,46 @@ package service
 import (
 	"GoCart/internal/domain"
 	"GoCart/internal/dto"
+	"GoCart/internal/repository"
+	"errors"
+	"fmt"
 	"log"
 )
 
 type UserService struct {
+	Repo repository.UserRepository
 }
 
-func (s UserService) findUserByEmail(email string) (domain.User, error) {
+func (s UserService) findUserByEmail(email string) (*domain.User, error) {
 	// perform some db operations
 	// write buisness logic
-	return domain.User{}, nil
+	user, err := s.Repo.FindUser(email)
+	return &user, err
 }
 
 func (s UserService) Signup(input dto.UserSignup) (string, error) {
 	log.Println(input)
 
-	return "", nil
+	user, err := s.Repo.CreateUser(domain.User{
+		Email:    input.Email,
+		Password: input.Password,
+		Phone:    input.Phone,
+	})
+
+	log.Println(user)
+	userInfo := fmt.Sprintf("%v,%v,%v", user.ID, user.Email, user.UserType)
+	return userInfo, err
+}
+
+func (s UserService) Login(email, password string) (string, error) {
+	user, err := s.Repo.FindUser(email)
+	if err != nil {
+		return "", err
+	}
+	if user.Password != password {
+		return "", errors.New("incorrect password")
+	}
+	return user.Email, nil
 }
 
 func (s UserService) GetVerificationCode(e domain.User) (int, error) {
