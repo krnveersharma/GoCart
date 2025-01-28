@@ -3,14 +3,15 @@ package service
 import (
 	"GoCart/internal/domain"
 	"GoCart/internal/dto"
+	"GoCart/internal/helper"
 	"GoCart/internal/repository"
-	"errors"
 	"fmt"
 	"log"
 )
 
 type UserService struct {
 	Repo repository.UserRepository
+	Auth helper.Auth
 }
 
 func (s UserService) findUserByEmail(email string) (*domain.User, error) {
@@ -39,10 +40,11 @@ func (s UserService) Login(email, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if user.Password != password {
-		return "", errors.New("incorrect password")
+	err = s.Auth.VerifyPassword(password, user.Password)
+	if err != nil {
+		return "", err
 	}
-	return user.Email, nil
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s UserService) GetVerificationCode(e domain.User) (int, error) {

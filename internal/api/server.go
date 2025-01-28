@@ -5,6 +5,7 @@ import (
 	"GoCart/internal/api/rest"
 	"GoCart/internal/api/rest/handlers"
 	"GoCart/internal/domain"
+	"GoCart/internal/helper"
 	"log"
 	"net/http"
 
@@ -24,10 +25,12 @@ func StartServer(config config.AppConfig) {
 	log.Print(db)
 
 	db.AutoMigrate(&domain.User{})
+	auth := helper.SetupAuth(config.AppSecret)
 
 	rh := &rest.RestHandler{
-		App: app,
-		DB:  db,
+		App:  app,
+		DB:   db,
+		Auth: auth,
 	}
 	SetupRoutes(rh)
 
