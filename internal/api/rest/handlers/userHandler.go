@@ -26,21 +26,25 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 		svc: svc,
 	}
 
+	pubRoutes := app.Group("/users")
+
 	//Public endpoints
-	app.Post("/register", handler.Register)
-	app.Post("/login", handler.Login)
+	pubRoutes.Post("/register", handler.Register)
+	pubRoutes.Post("/login", handler.Login)
+
+	pvtRoutes := pubRoutes.Group("/", rh.Auth.Authorize)
 
 	//Private Endpoints
-	app.Get("/verify", handler.GetVerificationCode)
-	app.Post("/verify", handler.Verify)
-	app.Get("/profile", handler.GetProfile)
-	app.Post("/profile", handler.CreateProfile)
+	pvtRoutes.Get("/verify", handler.GetVerificationCode)
+	pvtRoutes.Post("/verify", handler.Verify)
+	pvtRoutes.Get("/profile", handler.GetProfile)
+	pvtRoutes.Post("/profile", handler.CreateProfile)
 
-	app.Get("/cart", handler.GetCart)
-	app.Post("/cart", handler.AddToCart)
-	app.Get("/order", handler.GetOrders)
-	app.Get("/order/:id", handler.GetOrder)
-	app.Post("/become-seller", handler.BecomeSeller)
+	pvtRoutes.Get("/cart", handler.GetCart)
+	pvtRoutes.Post("/cart", handler.AddToCart)
+	pvtRoutes.Get("/order", handler.GetOrders)
+	pvtRoutes.Get("/order/:id", handler.GetOrder)
+	pvtRoutes.Post("/become-seller", handler.BecomeSeller)
 
 }
 
@@ -100,8 +104,9 @@ func (h *UserHandler) CreateProfile(ctx *fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetProfile(ctx *fiber.Ctx) error {
+	user := h.svc.Auth.GetCurrentUser(ctx)
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "get profile ",
+		"message": user,
 	})
 }
 

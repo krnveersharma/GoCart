@@ -23,7 +23,7 @@ func SetupAuth(s string) Auth {
 	}
 }
 
-func (a Auth) CreateHashPassword(p string) (string, error) {
+func (a *Auth) CreateHashPassword(p string) (string, error) {
 
 	if len(p) < 6 {
 		return "", errors.New("length of password should be atleast 6")
@@ -39,7 +39,7 @@ func (a Auth) CreateHashPassword(p string) (string, error) {
 	return string(hashP), nil
 }
 
-func (a Auth) GenerateToken(id uint, email, role string) (string, error) {
+func (a *Auth) GenerateToken(id uint, email, role string) (string, error) {
 	if id == 0 || email == "" || role == "" {
 		return "", errors.New("id,email or role can't be empty")
 	}
@@ -58,7 +58,7 @@ func (a Auth) GenerateToken(id uint, email, role string) (string, error) {
 	return tokenStr, nil
 }
 
-func (a Auth) VerifyPassword(pP string, hP string) error {
+func (a *Auth) VerifyPassword(pP string, hP string) error {
 	if len(pP) < 6 {
 		return errors.New("passowrd cant be shorter that 6")
 	}
@@ -70,29 +70,31 @@ func (a Auth) VerifyPassword(pP string, hP string) error {
 	return nil
 }
 
-func (a Auth) VerifyToken(t string) (domain.User, error) {
+func (a *Auth) VerifyToken(t string) (domain.User, error) {
 	tokenArray := strings.Split(t, " ")
 	if len(tokenArray) != 2 {
 		return domain.User{}, nil
 	}
 	tokenStr := tokenArray[1]
-	if tokenArray[1] != "Bearer" {
+	if tokenArray[0] != "Bearer" {
 		return domain.User{}, errors.New("invalid token")
 	}
-
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unknown signing method %v", token.Header)
 		}
 		return []byte(a.Secret), nil
 	})
-
 	if err != nil {
 		return domain.User{}, errors.New("token is expired")
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if float64(time.Now().Unix()) > claims["exp"].(float64) {
+		expClaim, ok := claims["expiry"].(float64)
+		if !ok {
+			return domain.User{}, errors.New("invalid or missing expiration claim")
+		}
+		if float64(time.Now().Unix()) > expClaim {
 			return domain.User{}, errors.New("token is expired")
 		}
 
@@ -106,7 +108,7 @@ func (a Auth) VerifyToken(t string) (domain.User, error) {
 	return domain.User{}, errors.New("token verification failed")
 }
 
-func (a Auth) Authorize(ctx *fiber.Ctx) error {
+func (a *Auth) Authorize(ctx *fiber.Ctx) error {
 	authHeaders := ctx.GetReqHeaders()["Authorization"]
 	if len(authHeaders) == 0 {
 		return ctx.Status(401).JSON(&fiber.Map{
@@ -114,7 +116,6 @@ func (a Auth) Authorize(ctx *fiber.Ctx) error {
 			"reason":  "missing Authorization header",
 		})
 	}
-
 	user, err := a.VerifyToken(authHeaders[0])
 
 	if err == nil && user.ID > 0 {
@@ -128,7 +129,7 @@ func (a Auth) Authorize(ctx *fiber.Ctx) error {
 	})
 }
 
-func (a Auth) getCurrentUser(ctx *fiber.Ctx) domain.User {
+func (a *Auth) GetCurrentUser(ctx *fiber.Ctx) domain.User {
 	user := ctx.Locals("user")
 	return user.(domain.User)
 }

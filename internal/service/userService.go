@@ -5,8 +5,6 @@ import (
 	"GoCart/internal/dto"
 	"GoCart/internal/helper"
 	"GoCart/internal/repository"
-	"fmt"
-	"log"
 )
 
 type UserService struct {
@@ -22,17 +20,18 @@ func (s UserService) findUserByEmail(email string) (*domain.User, error) {
 }
 
 func (s UserService) Signup(input dto.UserSignup) (string, error) {
-	log.Println(input)
+	hPassword, err := s.Auth.CreateHashPassword(input.Password)
+	if err != nil {
+		return "", err
+	}
 
-	user, err := s.Repo.CreateUser(domain.User{
+	user, _ := s.Repo.CreateUser(domain.User{
 		Email:    input.Email,
-		Password: input.Password,
+		Password: hPassword,
 		Phone:    input.Phone,
 	})
 
-	log.Println(user)
-	userInfo := fmt.Sprintf("%v,%v,%v", user.ID, user.Email, user.UserType)
-	return userInfo, err
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s UserService) Login(email, password string) (string, error) {
