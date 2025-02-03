@@ -5,6 +5,8 @@ import (
 	"GoCart/internal/dto"
 	"GoCart/internal/helper"
 	"GoCart/internal/repository"
+	"errors"
+	"time"
 )
 
 type UserService struct {
@@ -46,14 +48,59 @@ func (s UserService) Login(email, password string) (string, error) {
 	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
+func (s UserService) isVerifiedUser(id uint) bool {
+
+	currentUser, err := s.Repo.FindUserById(id)
+
+	return err == nil && currentUser.Verified
+}
+
 func (s UserService) GetVerificationCode(e domain.User) (int, error) {
+
+	if s.isVerifiedUser(e.ID) {
+		return 0, errors.New("user already verified")
+	}
+
+	code, err := s.Auth.GenerateCode()
+	if err != nil {
+		return 0, err
+	}
+	user := domain.User{
+		Expiry: time.Now().Add(30 * time.Minute),
+		Code:   code,
+	}
+
+	_, err = s.Repo.UpdateUser(e.ID, user)
+	if err != nil {
+		return 0, errors.New("unable to update verification code")
+	}
+
+	//send sms
 
 	return 0, nil
 }
 
-func (s UserService) VerifyCode(id uint, code int) (int, error) {
+func (s UserService) VerifyCode(id uint, code int) error {
+	if s.isVerifiedUser(id) {
+		return errors.New("user already verified")
+	}
+	user, err := s.Repo.FindUserById(id)
+	if err != nil {
+		return err
+	}
+	if code != user.Code || !time.Now().Before(user.Expiry) {
+		return errors.New("please provide valid code")
+	}
 
-	return 0, nil
+	updateUser := domain.User{
+		Verified: true,
+	}
+	_, err = s.Repo.UpdateUser(id, updateUser)
+	if err != nil {
+		return errors.New("unable to verify user")
+	}
+
+	return nil
 }
 
 func (s UserService) CreateProfile(id uint, input interface{}) error {
