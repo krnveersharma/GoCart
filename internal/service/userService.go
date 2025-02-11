@@ -1,17 +1,21 @@
 package service
 
 import (
+	"GoCart/config"
 	"GoCart/internal/domain"
 	"GoCart/internal/dto"
 	"GoCart/internal/helper"
 	"GoCart/internal/repository"
+	"GoCart/pkg/notification"
 	"errors"
+	"fmt"
 	"time"
 )
 
 type UserService struct {
-	Repo repository.UserRepository
-	Auth helper.Auth
+	Repo   repository.UserRepository
+	Auth   helper.Auth
+	Config config.AppConfig
 }
 
 func (s UserService) findUserByEmail(email string) (*domain.User, error) {
@@ -55,15 +59,15 @@ func (s UserService) isVerifiedUser(id uint) bool {
 	return err == nil && currentUser.Verified
 }
 
-func (s UserService) GetVerificationCode(e domain.User) (int, error) {
+func (s UserService) GetVerificationCode(e domain.User) error {
 
 	if s.isVerifiedUser(e.ID) {
-		return 0, errors.New("user already verified")
+		return errors.New("user already verified")
 	}
 
 	code, err := s.Auth.GenerateCode()
 	if err != nil {
-		return 0, err
+		return err
 	}
 	user := domain.User{
 		Expiry: time.Now().Add(30 * time.Minute),
@@ -72,12 +76,20 @@ func (s UserService) GetVerificationCode(e domain.User) (int, error) {
 
 	_, err = s.Repo.UpdateUser(e.ID, user)
 	if err != nil {
-		return 0, errors.New("unable to update verification code")
+		return errors.New("unable to update verification code")
 	}
+	user, _ = s.Repo.FindUserById(e.ID)
 
 	//send sms
+	notificationClient := notification.NewNotificationClient(s.Config)
 
-	return 0, nil
+	msg := fmt.Sprintf("Your verification code is %v", code)
+	err = notificationClient.SendSms(user.Phone, msg)
+	if err != nil {
+		return errors.New("error sending sms")
+	}
+
+	return nil
 }
 
 func (s UserService) VerifyCode(id uint, code int) error {

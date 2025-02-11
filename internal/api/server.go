@@ -22,9 +22,12 @@ func StartServer(config config.AppConfig) {
 		log.Fatalf("Database is not connected %s", err.Error())
 	}
 	log.Println("database connected")
-	log.Print(db)
+	log.Print("db is:", db)
 
-	db.AutoMigrate(&domain.User{})
+	err = db.AutoMigrate(&domain.User{})
+	if err != nil {
+		log.Fatalf("Database is not migrated %s", err.Error())
+	}
 	auth := helper.SetupAuth(config.AppSecret)
 
 	rh := &rest.RestHandler{
@@ -35,7 +38,10 @@ func StartServer(config config.AppConfig) {
 	}
 	SetupRoutes(rh)
 
-	app.Listen(config.ServerPort)
+	err = app.Listen(config.ServerPort)
+	if err != nil {
+		log.Fatalf("Server is not running %s", err.Error())
+	}
 }
 
 func HealthCheck(ctx *fiber.Ctx) error {

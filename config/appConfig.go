@@ -8,9 +8,12 @@ import (
 )
 
 type AppConfig struct {
-	ServerPort string
-	Dsn        string
-	AppSecret  string
+	ServerPort            string
+	Dsn                   string
+	AppSecret             string
+	TwilioAccountSid      string
+	TwilioAuthToken       string
+	TwilioFromPhoneNumber string
 }
 
 func SetupEnv() (cfg AppConfig, err error) {
