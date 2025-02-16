@@ -8,12 +8,11 @@ import (
 )
 
 type AppConfig struct {
-	ServerPort            string
-	Dsn                   string
-	AppSecret             string
-	TwilioAccountSid      string
-	TwilioAuthToken       string
-	TwilioFromPhoneNumber string
+	ServerPort string
+	Dsn        string
+	AppSecret  string
+	Email      string
+	Password   string
 }
 
 func SetupEnv() (cfg AppConfig, err error) {
@@ -25,8 +24,10 @@ func SetupEnv() (cfg AppConfig, err error) {
 
 	Dsn := os.Getenv("DSN")
 	appSecret := os.Getenv("App_secret")
+	email := os.Getenv("EMAIL")
+	password := os.Getenv("PASSWORD")
 	if len(Dsn) < 1 {
 		return AppConfig{}, errors.New("DSN is not found")
 	}
-	return AppConfig{ServerPort: httpPort, Dsn: Dsn, AppSecret: appSecret}, nil
+	return AppConfig{ServerPort: httpPort, Dsn: Dsn, AppSecret: appSecret, Email: email, Password: password}, nil
 }

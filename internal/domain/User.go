@@ -2,12 +2,17 @@ package domain
 
 import "time"
 
+const (
+	SELLER = "seller"
+	BUYER  = "buyer"
+)
+
 type User struct {
 	ID        uint      `json:"id" gorm:"PrimaryKey"`
-	FirstName int       `json:"firstName"`
+	FirstName string    `json:"firstName" binding:"required"`
 	LastName  string    `json:"lastName"`
 	Email     string    `json:"email" gorm:"index;unique;not null"`
-	Phone     string    `json:"phone"`
+	Phone     string    `json:"phone" binding:"required"`
 	Password  string    `json:"password"`
 	Code      int       `json:"code"`
 	Expiry    time.Time `json:"expiry"`

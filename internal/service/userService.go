@@ -9,6 +9,7 @@ import (
 	"GoCart/pkg/notification"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -31,11 +32,16 @@ func (s UserService) Signup(input dto.UserSignup) (string, error) {
 		return "", err
 	}
 
-	user, _ := s.Repo.CreateUser(domain.User{
+	log.Println("user phone number getting is", input.Phone)
+	user, err := s.Repo.CreateUser(domain.User{
 		Email:    input.Email,
 		Password: hPassword,
 		Phone:    input.Phone,
 	})
+
+	if err != nil {
+		return "", err
+	}
 
 	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
@@ -73,7 +79,6 @@ func (s UserService) GetVerificationCode(e domain.User) error {
 		Expiry: time.Now().Add(30 * time.Minute),
 		Code:   code,
 	}
-
 	_, err = s.Repo.UpdateUser(e.ID, user)
 	if err != nil {
 		return errors.New("unable to update verification code")
@@ -82,9 +87,10 @@ func (s UserService) GetVerificationCode(e domain.User) error {
 
 	//send sms
 	notificationClient := notification.NewNotificationClient(s.Config)
-
 	msg := fmt.Sprintf("Your verification code is %v", code)
-	err = notificationClient.SendSms(user.Phone, msg)
+	var toList []string
+	toList = append(toList, user.Email)
+	err = notificationClient.SendSms(toList, msg)
 	if err != nil {
 		return errors.New("error sending sms")
 	}
@@ -130,9 +136,40 @@ func (s UserService) UpdateProfile(id uint, input any) error {
 	return nil
 }
 
-func (s UserService) BecomeSeller(id uint, input interface{}) (string, error) {
+func (s UserService) BecomeSeller(id uint, input dto.SellerInput) (string, error) {
+	user, _ := s.Repo.FindUserById(id)
 
-	return "", nil
+	if user.UserType == domain.SELLER {
+		return "", errors.New("user is already seller")
+	}
+
+	_, err := s.Repo.UpdateUser(id, domain.User{
+		FirstName: input.FirstName,
+		LastName:  input.LastName,
+		Phone:     input.PhoneNumber,
+		UserType:  domain.SELLER,
+	})
+	if err != nil {
+		return "", errors.New("user unable to become seller")
+	}
+
+	token, err := s.Auth.GenerateToken(id, user.Email, domain.SELLER)
+	if err != nil {
+		return "", err
+	}
+
+	account := domain.BankAccount{
+		BankAccount: input.BankAccountNumber,
+		IFSCCode:    input.IFSCCode,
+		PaymentType: input.PaymentType,
+		UserId:      id,
+	}
+	err = s.Repo.CreateBankAccount((account))
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 func (s UserService) FindCart(id uint) ([]interface{}, error) {

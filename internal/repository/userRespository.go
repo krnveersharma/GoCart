@@ -14,6 +14,7 @@ type UserRepository interface {
 	FindUser(email string) (domain.User, error)
 	FindUserById(id uint) (domain.User, error)
 	UpdateUser(id uint, u domain.User) (domain.User, error)
+	CreateBankAccount(e domain.BankAccount) error
 }
 
 type userRepository struct {
@@ -58,7 +59,7 @@ func (r *userRepository) FindUserById(id uint) (domain.User, error) {
 		return domain.User{}, err
 	}
 
-	return domain.User{}, nil
+	return user, nil
 }
 
 func (r *userRepository) UpdateUser(id uint, u domain.User) (domain.User, error) {
@@ -71,4 +72,9 @@ func (r *userRepository) UpdateUser(id uint, u domain.User) (domain.User, error)
 	}
 
 	return domain.User{}, nil
+}
+
+func (r *userRepository) CreateBankAccount(e domain.BankAccount) error {
+
+	return r.db.Create(&e).Error
 }

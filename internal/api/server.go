@@ -22,12 +22,12 @@ func StartServer(config config.AppConfig) {
 		log.Fatalf("Database is not connected %s", err.Error())
 	}
 	log.Println("database connected")
-	log.Print("db is:", db)
 
-	err = db.AutoMigrate(&domain.User{})
+	err = db.AutoMigrate(&domain.User{}, &domain.BankAccount{})
 	if err != nil {
 		log.Fatalf("Database is not migrated %s", err.Error())
 	}
+
 	auth := helper.SetupAuth(config.AppSecret)
 
 	rh := &rest.RestHandler{

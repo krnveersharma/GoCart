@@ -5,6 +5,7 @@ import (
 	"GoCart/internal/dto"
 	"GoCart/internal/repository"
 	"GoCart/internal/service"
+	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -89,7 +90,6 @@ func (h *UserHandler) Login(ctx *fiber.Ctx) error {
 func (h *UserHandler) GetVerificationCode(ctx *fiber.Ctx) error {
 
 	user := h.svc.Auth.GetCurrentUser(ctx)
-
 	err := h.svc.GetVerificationCode(user)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -98,7 +98,7 @@ func (h *UserHandler) GetVerificationCode(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "get verification code ",
+		"message": "Code sent to your registered Email",
 	})
 }
 
@@ -167,7 +167,28 @@ func (h *UserHandler) GetOrder(ctx *fiber.Ctx) error {
 }
 
 func (h *UserHandler) BecomeSeller(ctx *fiber.Ctx) error {
+
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	req := dto.SellerInput{}
+	err := ctx.BodyParser(&req)
+	if err != nil {
+		fmt.Printf("BecomeSeller:error in parsing request body %v", err)
+		return ctx.Status((http.StatusBadRequest)).JSON(&fiber.Map{
+			"message": "request parameters are not valid",
+		})
+	}
+
+	token, err := h.svc.BecomeSeller(user.ID, req)
+	if err != nil {
+		fmt.Printf("BecomeSeller:error in generating token %v", err)
+		return ctx.Status((http.StatusBadRequest)).JSON(&fiber.Map{
+			"message": "failed to become seller",
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "become seller",
+		"message": "Success",
+		"token":   token,
 	})
 }
