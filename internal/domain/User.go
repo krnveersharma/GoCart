@@ -9,8 +9,8 @@ const (
 
 type User struct {
 	ID        uint      `json:"id" gorm:"PrimaryKey"`
-	FirstName string    `json:"firstName" binding:"required"`
-	LastName  string    `json:"lastName"`
+	FirstName string    `json:"first_name" binding:"required"`
+	LastName  string    `json:"last_name"`
 	Email     string    `json:"email" gorm:"index;unique;not null"`
 	Phone     string    `json:"phone" binding:"required"`
 	Password  string    `json:"password"`

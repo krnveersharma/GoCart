@@ -138,3 +138,28 @@ func (a Auth) GenerateCode() (int, error) {
 
 	return RandomNumbers(6)
 }
+
+func (a *Auth) AuthorizeSeller(ctx *fiber.Ctx) error {
+	authHeaders := ctx.GetReqHeaders()["Authorization"]
+	if len(authHeaders) == 0 {
+		return ctx.Status(401).JSON(&fiber.Map{
+			"message": "authorization failed",
+			"reason":  "missing Authorization header",
+		})
+	}
+	user, err := a.VerifyToken(authHeaders[0])
+	if err != nil {
+		return ctx.Status(401).JSON(&fiber.Map{
+			"message": "authorization failed",
+			"reason":  err,
+		})
+	} else if user.ID > 0 && user.UserType == domain.SELLER {
+		ctx.Locals("user", user)
+		return ctx.Next()
+	}
+
+	return ctx.Status(401).JSON(&fiber.Map{
+		"message": "authorization failed",
+		"reason":  errors.New("please join seller programs to manage products"),
+	})
+}
