@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"GoCart/internal/api/rest"
+	"GoCart/internal/dto"
 	"GoCart/internal/repository"
 	"GoCart/internal/service"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -26,10 +26,10 @@ func SetupCatalogRoutes(rh *rest.RestHandler) {
 		svc: svc,
 	}
 
-	app.Get("/products")
-	app.Get("/products/:id")
-	app.Get("/categories")
-	app.Get("/categories/:id")
+	app.Get("/products", handler.GetProducts)
+	app.Get("/products/:id", handler.GetProduct)
+	app.Get("/categories", handler.GetCategories)
+	app.Get("/categories/:id", handler.GetCategoryById)
 
 	selRoutes := app.Group("/seller", rh.Auth.AuthorizeSeller)
 	selRoutes.Post("/categories", handler.CreateCategories)
@@ -45,11 +45,30 @@ func SetupCatalogRoutes(rh *rest.RestHandler) {
 
 }
 
-func (h CatalogHandler) CreateCategories(ctx *fiber.Ctx) error {
-	user := h.svc.Auth.GetCurrentUser(ctx)
-	log.Printf("seller is", user)
+func (h CatalogHandler) GetCategories(ctx *fiber.Ctx) error {
 
-	return rest.SuccessResponse(ctx, "create category endpoint", nil)
+	return rest.SuccessResponse(ctx, "get category endpoint", nil)
+}
+
+func (h CatalogHandler) GetCategoryById(ctx *fiber.Ctx) error {
+
+	return rest.SuccessResponse(ctx, "get category by id endpoint", nil)
+}
+
+func (h CatalogHandler) CreateCategories(ctx *fiber.Ctx) error {
+
+	req := dto.CreateCategoryRequest{}
+	err := ctx.BodyParser(req)
+	if err != nil {
+		return rest.BadRequest(ctx, "create category request is not valid")
+	}
+
+	err = h.svc.CreateCategory(req)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
+	return rest.SuccessResponse(ctx, "category created successfuly", nil)
 }
 
 func (h CatalogHandler) EditCategory(ctx *fiber.Ctx) error {
