@@ -5,6 +5,7 @@ import (
 	"GoCart/internal/dto"
 	"GoCart/internal/repository"
 	"GoCart/internal/service"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -47,10 +48,21 @@ func SetupCatalogRoutes(rh *rest.RestHandler) {
 
 func (h CatalogHandler) GetCategories(ctx *fiber.Ctx) error {
 
-	return rest.SuccessResponse(ctx, "get category endpoint", nil)
+	cats, err := h.svc.GetCategories()
+	if err != nil {
+		return rest.ErrorMessage(ctx, 404, err)
+	}
+	return rest.SuccessResponse(ctx, "categories", cats)
 }
 
 func (h CatalogHandler) GetCategoryById(ctx *fiber.Ctx) error {
+
+	id, _ := strconv.Atoi(ctx.Params("id"))
+
+	cat, err := h.svc.GetCategory(id)
+	if err != nil {
+		return err
+	}
 
 	return rest.SuccessResponse(ctx, "get category by id endpoint", nil)
 }
@@ -73,11 +85,23 @@ func (h CatalogHandler) CreateCategories(ctx *fiber.Ctx) error {
 
 func (h CatalogHandler) EditCategory(ctx *fiber.Ctx) error {
 
+	id, _ := strconv.Atoi(ctx.Params("id"))
+	req := dto.CreateCategoryRequest{}
+	err := ctx.BodyParser(req)
+	if err != nil {
+		return rest.BadRequest(ctx, "create category request is not valid")
+	}
+
+	updatedCategory, err = h.svc.EditCategory(id, req)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
 	return rest.SuccessResponse(ctx, "edit category endpoint", nil)
 }
 
 func (h CatalogHandler) DeleteCategory(ctx *fiber.Ctx) error {
-
+	id, _ := strconv.Atoi(ctx.Params("id"))
 	return rest.SuccessResponse(ctx, "delete category endpoint", nil)
 }
 

@@ -6,6 +6,7 @@ import (
 	"GoCart/internal/dto"
 	"GoCart/internal/helper"
 	"GoCart/internal/repository"
+	"errors"
 )
 
 type CatalogService struct {
@@ -25,27 +26,54 @@ func (s CatalogService) CreateCategory(input dto.CreateCategoryRequest) error {
 	return err
 }
 
-func (s CatalogService) EditCategory(input any) error {
+func (s CatalogService) EditCategory(id int, input dto.CreateCategoryRequest) (*domain.Category, error) {
 
+	exitCat, err := s.Repo.FindCategoryById(id)
+	if err != nil {
+		return nil, err
+	}
+	if len(input.Name) > 0 {
+		exitCat.Name = input.Name
+	}
+	if input.ParentId > 0 {
+		exitCat.ParentId = input.ParentId
+	}
+
+	if len(input.ImageUrl) > 0 {
+		exitCat.ImageUrl = input.ImageUrl
+	}
+
+	if input.DisplayOrder > 0 {
+		exitCat.DisplayOrder = input.DisplayOrder
+	}
+
+	updatedCat, err := s.Repo.EditCategory(exitCat)
+	return updatedCat, nil
+}
+
+func (s CatalogService) DeleteCategory(id int) error {
+	err := s.Repo.DeleteCategory(id)
+	if err != nil {
+		return errors.New("category does not exist")
+	}
 	return nil
 }
 
-func (s CatalogService) DeleteCategory(input any) error {
-
-	return nil
-}
-
-func (s CatalogService) GetCategories(input any) error {
+func (s CatalogService) GetCategories() ([]*domain.Category, error) {
 
 	categories, err := s.Repo.FindCategories()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	return categories, err
 }
 
-func (s CatalogService) GetCategory(input any) error {
+func (s CatalogService) GetCategory(id int) (*domain.Category, error) {
 
-	return nil
+	cat, err := s.Repo.FindCategoryById(id)
+	if err != nil {
+		return nil, err
+	}
+	return cat, nil
 }
